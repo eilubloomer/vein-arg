@@ -1,5 +1,5 @@
 #wdir="/home/eileen/github/vein/prep"  # eilee
-wdir="/home/usuario/github/vein/prep"  # ram
+wdir="/home/usuario/github/eilubloomer/vein/prep"  # ram
 setwd(wdir)
 
 # Rutas a archivos:
@@ -22,13 +22,13 @@ tmp$mes = strftime(as.POSIXlt(tmp$Fecha,"%Y-%m-%d"),"%Y-%m")                    
 tmp <- tmp[!is.na(tmp$Temp..Media...C.), ]                                                                    #saco las Temp Medias == N/A con: is.na(columna)
 tmpMedia = aggregate(tmp$Temp..Media...C., by =list(mes=tmp$mes, id=tmp$Estacion), FUN=mean, na.action=na.rm) #calculo media mensual de cada estación
 
-tablaFinal = merge(est, tmpMedia, by.x="NRO", by.y = "id")
+tablaTemp  = merge(est, tmpMedia, by.x="NRO", by.y = "id")
 
-tablaFinal <- subset(tablaFinal, NRO %in% estaciones_id )               #filtrar por estaciones que quiero subset() subset ( tabla$Estacion %in% estaciones)
-tablaFinal <- tablaFinal[order(tablaFinal$PROVINCIA, tablaFinal$mes), ]
+tablaTemp <- subset(tablaTemp, NRO %in% estaciones_id )               #filtrar por estaciones que quiero subset() subset ( tabla$Estacion %in% estaciones)
+tablaTemp <- tablaTemp[order(tablaTemp$PROVINCIA, tablaTemp$mes), ]
 
-colnames(tablaFinal)=c("estId","Provincia","estName","año-mes","temp[ºC]")
-write.csv(format(tablaFinal, digits=3), "met.csv", row.names=F)
+colnames(tablaTemp)=c("estId","Provincia","estName","año-mes","temp[ºC]")
+#write.csv(format(tablaFinal, digits=3), "met.csv", row.names=F)
 
 #----------------
 # Precipitaciones: calculo precipitación acumulada mensual y dias con precipitaciones para cada mes de cada provincia
@@ -38,11 +38,17 @@ ppt <- ppt[!is.na(ppt$Precipitacion..mm.), ]                   #elimino filas co
 
 lluvia = aggregate(ppt$Precipitacion..mm., by = list(mes = ppt$mes, id = ppt$Estacion), FUN = function(x) c(diasPrecip = sum(x > 0.254), acumPrecip= sum(x[x > 0.254]))) # calculo ppt acum mensual y dias con ppt por mes
 
-tablaFinal = merge(est, lluvia, by.x="NRO", by.y = "id")
+tablaPpt = merge(est, lluvia, by.x="NRO", by.y = "id")
+   
+tablaPpt = subset(tablaPpt, NRO %in% estaciones_id )
+tablaPpt = tablaPpt[order(tablaPpt$PROVINCIA, tablaPpt$mes), ]
 
-tablaFinal = subset(tablaFinal, NRO %in% estaciones_id )
-tablaFinal = tablaFinal[order(tablaFinal$PROVINCIA, tablaFinal$mes), ]
+colnames(tablaPpt)=c("estId","Provincia","estName","año-mes","ppt")
+#write.csv(format(tablaFinal, digits=3), "Precipitación.csv", row.names=F)
 
-colnames(tablaFinal)=c("estId","Provincia","estName","año-mes","ppt")
-write.csv(format(tablaFinal, digits=3), "Precipitación.csv", row.names=F)
+#----------------
+# Merge all
 
+tablaMet = merge(tablaPpt,tablaTemp[c("año-mes","estId","temp[ºC]")], by=c("año-mes","estId"))
+
+write.csv(format(tablaMet, digits=3), "met.csv", row.names=F)
