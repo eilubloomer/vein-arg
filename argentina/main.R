@@ -4,13 +4,13 @@ options(encoding = "UTF-8")
 #------------------------------------
 require(vein)       # vein
 require(sf)         # spatial
-require(ggplot2)    # plots
 require(data.table) # faster data.frames
 require(readxl)     # read .xls files
-require(units)
-require(stars)
-require(eixport)
-require(cptcity)    # 7120 colour palettes
+require(units)      # units conversions
+#require(eixport)   #netcdf?
+#require(stars)
+#require(ggplot2)    # plots
+#require(cptcity)    # 7120 colour palettes
 
 wdir="/home/usuario/github/eilubloomer/vein/argentina"
 setwd(wdir)
@@ -18,32 +18,33 @@ setwd(wdir)
 ## global vars:
 YEAR=2019                          # Año elegido para inventario
 
+categories= c("PC", "LCV", "TRUCKS", "BUS", "MC")                           # categorias vehiculos: autos, traffics/pick-up/kangoo, camiones, bondis, motos
+pollutants= c("CO", "HC", "NMHC", "NOx", "CO2", "PM", "NO2", "NO", "SO2")   # contaminantes a inventariar
+
 ## Input files:
 inventory_path="inventory.xlsx"    # Path a archivo de entrada
-
-sp_zones_path="sp/provincias.gpkg" # archivo espacial de regiones/provincias/departamentos/localidades
-sp_roads_path="sp/rutas.gpkg"      # archivo espacial de calles/caminos/avenidas/rutas/autopistas
-
+sp_zones_path="sp/provincias.gpkg" # gpkg de regiones/provincias/departamentos/localidades
+sp_roads_path="sp/rutas.gpkg"      # gpkg de calles/caminos/avenidas/rutas/autopistas
 
 #--------------------------------------------------------------------
 #
 # (0) Leo y proceso "inventory.xlsx"
 
 ## Leo sheets:
-metadata   <- read_xlsx(path = inventory_path, sheet = "metadata")      # definicion de categorias de vehiculos y características
-geocode    <- read_xlsx(path = inventory_path, sheet = "geocode")       # definicion de regiones y sus id (geocode)
-fuel_month <- read_xlsx(path = inventory_path, sheet = "fuel_month")    # consumo de combustible por mes y region
-mileage    <- read_xlsx(path = inventory_path, sheet = "mileage")       # kilometraje de cada categoria
-fleet_age  <- read_xlsx(path = inventory_path, sheet = "fleet")         # flota anual (numero de autos de cada categoría)
+metadata   <- read_xlsx(path = inventory_path, sheet = "metadata")      # def. de categorias de vehiculos y características
+geocode    <- read_xlsx(path = inventory_path, sheet = "geocode")       # def. de regiones e ids (geocode)
+fuel       <- read_xlsx(path = inventory_path, sheet = "fuel")          # consumo de combustible por mes y region
+fleet      <- read_xlsx(path = inventory_path, sheet = "fleet")         # flota anual (numero de autos de cada categoría)
+#mileage    <- read_xlsx(path = inventory_path, sheet = "mileage")       # kilometraje de cada categoria
 tfs        <- read_xlsx(path = inventory_path, sheet = "tfs")           # ciclo diurno
 met        <- read_xlsx(path = inventory_path, sheet = "met")           # temperaturas medias y dias con precip.
 euro       <- read_xlsx(path = inventory_path, sheet = "euro")          # ??
 tech       <- read_xlsx(path = inventory_path, sheet = "tech")          # ??
-im_ok      <- read_xlsx(path = inventory_path, sheet = "im_ok")         # num. vehiculos que fallaron verif. tecnica total
-im_co      <- read_xlsx(path = inventory_path, sheet = "im_co")         # num. vehiculos que fallaron verif. tecnica por CO
-im_hc      <- read_xlsx(path = inventory_path, sheet = "im_hc")         # num. vehiculos que fallaron verif. tecnica por HC
-im_nox     <- read_xlsx(path = inventory_path, sheet = "im_nox")        # num. vehiculos que fallaron verif. tecnica por NOx
-im_pm      <- read_xlsx(path = inventory_path, sheet = "im_pm25")       # num. vehiculos que fallaron verif. tecnica por PM25
+#im_ok      <- read_xlsx(path = inventory_path, sheet = "im_ok")         # num. vehic. que fallaron verif. tecnica total
+#im_co      <- read_xlsx(path = inventory_path, sheet = "im_co")         # num. vehic. que fallaron verif. tecnica por CO
+#im_hc      <- read_xlsx(path = inventory_path, sheet = "im_hc")         # num. vehic. que fallaron verif. tecnica por HC
+#im_nox     <- read_xlsx(path = inventory_path, sheet = "im_nox")        # num. vehic. que fallaron verif. tecnica por NOx
+#im_pm      <- read_xlsx(path = inventory_path, sheet = "im_pm25")       # num. vehic. que fallaron verif. tecnica por PM25
 s          <- read_xlsx(path = inventory_path, sheet = "s")             # ??
 fuel_spec  <- read_xlsx(path = inventory_path, sheet = "fuel_spec")     # características de los combustibles
 pmonth     <- read_xlsx(path = inventory_path, sheet = "pmonth")        # ???
@@ -64,7 +65,6 @@ roads=st_transform(roads,crs)  # transf. coords a sist. proyectado (generalmente
 #
 # (2) Traffic
 
-categories <- c("pc", "lcv", "trucks", "bus", "mc") # autos, traffics, camiones, bondis, motos
 k_D        <- 1/2.482039   # ???    
 k_E        <- 1/5.708199   # ???
 k_G        <- 1/5.866790   # ???
@@ -72,17 +72,17 @@ survival   <- TRUE
 
 #source("scripts/traffic.R", encoding = "UTF-8")
 # fleet age
-fleet_age[is.na(fleet_age)] <- 0
+fleet[is.na(fleet)] <- 0
 
 # apply survival functions
 if(survival){
   for (i in seq_along(metadata$vehicles)) {
-    fleet_age[[metadata$vehicles[i]]] <- age( x = fleet_age[[metadata$vehicles[i]]], type = metadata$survival[i], a = metadata$survival_param_a[i], b = metadata$survival_param_b[i] )
+    fleet[[metadata$vehicles[i]]] <- age( x = fleet[[metadata$vehicles[i]]], type = metadata$survival[i], a = metadata$survival_param_a[i], b = metadata$survival_param_b[i] )
   }
 }
 
 # extraigo subcategorias de vehiculos
-subcategories <- names(fleet_age)
+subcategories <- names(fleet)
 c_PC     <- subcategories[grep(pattern = "PC",     x = subcategories)]
 c_LCV    <- subcategories[grep(pattern = "LCV",    x = subcategories)]
 c_TRUCKS <- subcategories[grep(pattern = "TRUCKS", x = subcategories)]
@@ -91,11 +91,11 @@ c_MC     <- subcategories[grep(pattern = "MC",     x = subcategories)]
 
 
 # calculate proportion in PC
-PC_total=sum(fleet_age[, c_PC])
-kPC_G  <- sum(fleet_age$PC_G)  / PC_total
-kPC_E  <- sum(fleet_age$PC_E)  / PC_total
-kPC_FG <- sum(fleet_age$PC_FG) / PC_total
-kPC_FE <- sum(fleet_age$PC_FE) / PC_total
+PC_total=sum(fleet[, c_PC])
+kPC_G  <- sum(fleet$PC_G)  / PC_total
+kPC_E  <- sum(fleet$PC_E)  / PC_total
+kPC_FG <- sum(fleet$PC_FG) / PC_total
+kPC_FE <- sum(fleet$PC_FE) / PC_total
 kPC <- c(kPC_G, kPC_E, kPC_FG, kPC_FE)
 l_PC <- list()
 

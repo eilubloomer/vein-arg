@@ -3,9 +3,9 @@ wdir="/home/usuario/github/eilubloomer/vein/prep"  # ram
 setwd(wdir)
 
 # Rutas a archivos:
-path_tmp_file="data/Exp. Nro. 203783.txt"
-path_ppt_file="data/Exp. Nro. 203783-Precip.txt"
-path_est_file="data/SMN_estaciones.csv"
+path_tmp_file="data/SMN/Exp. Nro. 203783.txt"
+path_ppt_file="data/SMN/Exp. Nro. 203783-Precip.txt"
+path_est_file="data/SMN/SMN_estaciones.csv"
 
 #Leo archivos de entrada:
 tmp= read.csv(path_tmp_file,sep=",",dec=".", header=T, na.strings = "\\N")  #Leo archivo c/ datos horarios de temperaturas
