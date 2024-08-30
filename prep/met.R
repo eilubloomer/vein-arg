@@ -1,5 +1,5 @@
 #wdir="/home/eileen/github/vein/prep"  # eilee
-wdir="/home/usuario/github/eilubloomer/vein/prep"  # ram
+wdir="/home/ram/github/eilubloomer/vein/prep"  # ram
 setwd(wdir)
 
 # Rutas a archivos:

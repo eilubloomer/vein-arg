@@ -12,10 +12,11 @@ require(units)      # units conversions
 #require(ggplot2)    # plots
 #require(cptcity)    # 7120 colour palettes
 
-wdir="/home/usuario/github/eilubloomer/vein/argentina"
-setwd(wdir)
+#Set base directory
+dir="/home/usuario/github/eilubloomer/vein/argentina"
+setwd(dir)
 
-## global vars:
+## global variables:
 YEAR=2019                          # Año elegido para inventario
 
 categories= c("PC", "LCV", "TRUCKS", "BUS", "MC")                           # categorias vehiculos: autos, traffics/pick-up/kangoo, camiones, bondis, motos
@@ -26,28 +27,73 @@ inventory_path="inventory.xlsx"    # Path a archivo de entrada
 sp_zones_path="sp/provincias.gpkg" # gpkg de regiones/provincias/departamentos/localidades
 sp_roads_path="sp/rutas.gpkg"      # gpkg de calles/caminos/avenidas/rutas/autopistas
 
+
+## Run parameters:
+col_region         <- "region" # esta columna debe estar presente en fuel y met
+scale              <- "none"
+theme              <- "black" # dark clean ing
+delete_directories <- TRUE
+add_reg_veh        <- TRUE
+
 #--------------------------------------------------------------------
 #
 # (0) Leo y proceso "inventory.xlsx"
 
 ## Leo sheets:
-metadata   <- read_xlsx(path = inventory_path, sheet = "metadata")      # def. de categorias de vehiculos y características
-geocode    <- read_xlsx(path = inventory_path, sheet = "geocode")       # def. de regiones e ids (geocode)
-fuel       <- read_xlsx(path = inventory_path, sheet = "fuel")          # consumo de combustible por mes y region
-fleet      <- read_xlsx(path = inventory_path, sheet = "fleet")         # flota anual (numero de autos de cada categoría)
-#mileage    <- read_xlsx(path = inventory_path, sheet = "mileage")       # kilometraje de cada categoria
-tfs        <- read_xlsx(path = inventory_path, sheet = "tfs")           # ciclo diurno
-met        <- read_xlsx(path = inventory_path, sheet = "met")           # temperaturas medias y dias con precip.
-euro       <- read_xlsx(path = inventory_path, sheet = "euro")          # ??
-tech       <- read_xlsx(path = inventory_path, sheet = "tech")          # ??
-#im_ok      <- read_xlsx(path = inventory_path, sheet = "im_ok")         # num. vehic. que fallaron verif. tecnica total
-#im_co      <- read_xlsx(path = inventory_path, sheet = "im_co")         # num. vehic. que fallaron verif. tecnica por CO
-#im_hc      <- read_xlsx(path = inventory_path, sheet = "im_hc")         # num. vehic. que fallaron verif. tecnica por HC
-#im_nox     <- read_xlsx(path = inventory_path, sheet = "im_nox")        # num. vehic. que fallaron verif. tecnica por NOx
-#im_pm      <- read_xlsx(path = inventory_path, sheet = "im_pm25")       # num. vehic. que fallaron verif. tecnica por PM25
-s          <- read_xlsx(path = inventory_path, sheet = "s")             # ??
-fuel_spec  <- read_xlsx(path = inventory_path, sheet = "fuel_spec")     # características de los combustibles
-pmonth     <- read_xlsx(path = inventory_path, sheet = "pmonth")        # ???
+metadata <- read_xlsx(path = inventory_path, sheet = "metadata")      # def. de categorias de vehiculos y características
+geocode  <- read_xlsx(path = inventory_path, sheet = "geocode")       # def. de regiones e ids (geocode)
+fuel     <- read_xlsx(path = inventory_path, sheet = "fuel")          # consumo de combustible por mes y region
+fleet    <- read_xlsx(path = inventory_path, sheet = "fleet")         # flota anual (numero de autos de cada categoría)
+mileage  <- read_xlsx(path = inventory_path, sheet = "mileage")       # kilometraje de cada categoria
+tfs      <- read_xlsx(path = inventory_path, sheet = "tfs")           # ciclo diurno
+met      <- read_xlsx(path = inventory_path, sheet = "met")           # temperaturas medias y dias con precip.
+euro     <- read_xlsx(path = inventory_path, sheet = "euro")          # ??
+tech     <- read_xlsx(path = inventory_path, sheet = "tech")          # ??
+s        <- read_xlsx(path = inventory_path, sheet = "s")             # ??
+fuel_spec<- read_xlsx(path = inventory_path, sheet = "fuel_spec")     # características de los combustibles
+pmonth   <- read_xlsx(path = inventory_path, sheet = "pmonth")        # ???
+im_ok    <- read_xlsx(path = inventory_path, sheet = "im_ok")         # num. vehic. que fallaron verif. tecnica total
+im_co    <- read_xlsx(path = inventory_path, sheet = "im_co")         # num. vehic. que fallaron verif. tecnica por CO
+im_hc    <- read_xlsx(path = inventory_path, sheet = "im_hc")         # num. vehic. que fallaron verif. tecnica por HC
+im_nox   <- read_xlsx(path = inventory_path, sheet = "im_nox")        # num. vehic. que fallaron verif. tecnica por NOx
+im_pm    <- read_xlsx(path = inventory_path, sheet = "im_pm25")       # num. vehic. que fallaron verif. tecnica por PM25
+
+
+# assuming HY and GLP G in the meantime
+metadata$fuel <- gsub("HY" , "G", metadata$fuel)
+metadata$fuel <- gsub("GLP", "G", metadata$fuel)
+
+mileage[, metadata$vehicles] <- add_lkm(mileage[, metadata$vehicles])  #ES NECESARIO? transforma milage a un objeto "units" que tiene unidades de km.
+
+#Agregar columna de region a fleet (veh)
+region <- unique(geocode$region)
+if(!any(grepl("region", names(fleet)))) {
+if(add_reg_veh) {
+  fleet <- rbindlist(lapply(seq_along(reg), function(i){
+    fleet$region <- reg[i]
+    fleet
+  }))
+}}
+
+# fuel ####
+# necesita columnas Year, Month, FUEL_M3 *density_tm3
+fuel_month[, date := ISOdate(Year, Month, 1, 0,0,0)]
+fuel_month[, consumption_t := FUEL_M3 *density_tm3]
+
+# manual
+fuel_month[, type := "data"]
+pmonth <- fuel_month
+
+fuel <- fuel_month[, sum(consumption_t),  by = .(region, Year, fuel, type, density_tm3) ] #-> fuel
+names(fuel)[ncol(fuel)] <- "consumption_t"
+fuel$consumption_t <- units::set_units(fuel$consumption_t,   "t")
+fuel$density_tm3   <- units::set_units(fuel$density_tm3,  "t/m3")
+
+pmonth$region=toupper(pmonth$region)
+pmonth <- pmonth[Year ==  YEAR]
+
+
+met$region=toupper(   met$region)
 
 
 #--------------------------------------------------------------------
