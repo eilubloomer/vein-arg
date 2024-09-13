@@ -1,11 +1,11 @@
-#wdir="/home/eileen/github/vein/prep"  # eilee
-wdir="/home/ram/github/eilubloomer/vein/prep"  # ram
+#wdir="/home/eileen/github/vein/prep"               # eilee
+wdir="/home/ram/github/eilubloomer/vein-arg/prep/"  # ram
 setwd(wdir)
 
 # Rutas a archivos:
-path_tmp_file="data/SMN/Exp. Nro. 203783.txt"
-path_ppt_file="data/SMN/Exp. Nro. 203783-Precip.txt"
-path_est_file="data/SMN/SMN_estaciones.csv"
+path_tmp_file="./data/SMN/Exp. Nro. 203783.txt"
+path_ppt_file="./data/SMN/Exp. Nro. 203783-Precip.txt"
+path_est_file="./data/SMN/SMN_estaciones.csv"
 
 #Leo archivos de entrada:
 tmp= read.csv(path_tmp_file,sep=",",dec=".", header=T, na.strings = "\\N")  #Leo archivo c/ datos horarios de temperaturas
@@ -13,7 +13,11 @@ ppt= read.table(path_ppt_file, sep=",",dec=".",header=T,na.strings = "\\N") #Leo
 est= read.csv(path_est_file,sep=",",dec=".",header=T)                       #Leo archivo estaciones SMN
 est=est[c("NRO","PROVINCIA","NOMBRE")]
 #Estaciones a usar:
-estaciones_id=c(87582,87576, 87222, 87155, 87828, 87355, 87166, 87374, 87162, 87078, 87623, 87217, 87418, 87178, 87715, 87791, 87047, 87311, 87436, 87925, 87371, 87129, 87938, 87121)
+estaciones_id=c(87582, 87576, 87344, 87222, 87155, 87828, 87355, 87166, 87374, 87162, 87623, 87217, 87418, 87178, 87715, 87791, 87047, 87311, 87436, 87925, 87371, 87129, 87938, 87121, 87046)
+
+cat("Estaciones elegidas:\n")
+print(est[which(est$NRO %in% estaciones_id),])
+cat("# estaciones: ",length(estaciones_id),"\n")
 
 #----------------
 # Temperaturas: calculo de temperaturas medias mensuales representativas de cada provincia.
@@ -27,7 +31,7 @@ tablaTemp  = merge(est, tmpMedia, by.x="NRO", by.y = "id")
 tablaTemp <- subset(tablaTemp, NRO %in% estaciones_id )               #filtrar por estaciones que quiero subset() subset ( tabla$Estacion %in% estaciones)
 tablaTemp <- tablaTemp[order(tablaTemp$PROVINCIA, tablaTemp$mes), ]
 
-colnames(tablaTemp)=c("estId","Provincia","estName","yr_mo","temp[ºC]")
+colnames(tablaTemp)=c("estId","Provincia","estName","yr_mo","temp_C")
 #write.csv(format(tablaFinal, digits=3), "met.csv", row.names=F)
 
 #----------------
@@ -43,7 +47,7 @@ tablaPpt = merge(est, lluvia, by.x="NRO", by.y = "id")
 tablaPpt = subset(tablaPpt, NRO %in% estaciones_id )
 tablaPpt = tablaPpt[order(tablaPpt$PROVINCIA, tablaPpt$mes), ]
 
-colnames(tablaPpt)=c("estId","region","estName","yr_mo","ppt")
+colnames(tablaPpt)=c("estId","region","estName","yr_mo","prec")
 #write.csv(format(tablaFinal, digits=3), "Precipitación.csv", row.names=F)
 
 #----------------
@@ -56,3 +60,6 @@ tablaMet$Month=strftime(tablaMet$yr_mo,"%m")
 
 
 write.csv(format(tablaMet, digits=3), "met.csv", row.names=F)
+
+
+print(unique(tablaMet$region))
