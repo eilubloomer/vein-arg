@@ -9,13 +9,13 @@ require(units)      # units conversions
 require(ggplot2)
 
 #Base directory
-dir="/home/ram/github/eilubloomer/vein/argentina"
+dir="/home/ram/github/eilubloomer/vein-arg/argentina"
 setwd(dir)
 
 #Input files:
-inventory_path="inventory.xlsx"    # Path a archivo de entrada
-sp_zones_path="sp/provincias.gpkg" # gpkg de regiones/provincias/departamentos/localidades
-sp_roads_path="sp/rutas.gpkg"      # gpkg de calles/caminos/avenidas/rutas/autopistas
+inventory_path="inventory.xlsx"     # Path a archivo de entrada
+sp_region_path="sp/provincias.gpkg" # gpkg de regiones/provincias/departamentos/localidades
+sp_roads_path="sp/rutas.gpkg"       # gpkg de calles/caminos/avenidas/rutas/autopistas
 
 
 #Run parameters:
@@ -25,19 +25,26 @@ pollutants= c("CO", "HC", "NMHC", "NOx", "CO2", "PM", "NO2", "NO", "SO2")   # co
 
 col_region         <- "region"     # esta columna debe estar presente en fuel y met
 scale              <- "none"
-theme              <- "black" # dark clean ing
 delete_directories <- TRUE
 verbose            <- FALSE
+do_plots           <- FALSE
+theme              <- "black"      # plot theme
 
 #01-config    variables
 add_reg_veh        <- TRUE
 
 #02-traffic   variables
-survival=TRUE
+survival=TRUE                                        # aplico curva de supervivencia?
 categories= c("PC", "LCV", "TRUCKS", "BUS", "MC")    # categorias vehiculos: autos, traffics/pick-up/kangoo, camiones, bondis, motos
 
-#03-fuel_eval variables
-pol <- "FC"
+# Preguntas:
+#	- que significado tiene "lv", "v" y "vv"
 
+
+#03-fuel_eval variables
+
+
+#04-exhaust   variables
+IM=FALSE
 
 

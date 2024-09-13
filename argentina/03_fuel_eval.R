@@ -20,11 +20,7 @@ suppressWarnings(file.remove("emi/FC_INITIAL.csv"))
 
 metadata_original <- metadata                    # guardo una copia de metadata
 metadata <- metadata[metadata$fuel != "ELEC", ]  # saco los que son ELEC
-# para vehiculos hibridos solo hay euro 4, entonces se asumio para
-# esa categoria en inventory.xlsx
-# es importante cerar el numero de vehiculos antes que estos entraran
-# en circulacion
-
+# para vehiculos hibridos solo hay euro 4, entonces se asumio para esa categoria en inventory.xlsx # es importante cerar el numero de vehiculos antes que estos entraran en circulacion
 
 cat("\nHot Running Fuel Consumption\n")
 
@@ -114,8 +110,7 @@ for(k in seq_along(reg)) {
     cate <- suppressWarnings(as.character(as.roman(gsub("Euro ", "", euro[[metadata_cold$vehicles[i]]]))))
     cate[is.na(cate)] <- "PRE"
     dm <- pmonth[region == reg[k] & fuel == metadata_cold$fuel[i]]$consumption_t
-    #ta <- met[capitals == unique(capitals[k])]$Temperature
-    ta <- met[region == unique(region[k])]$temp_C
+    ta <- met[region == unique(reg[k])]$temp_C
     
     for(j in seq_along(pol)){
 
@@ -164,15 +159,13 @@ for(k in seq_along(reg)) {
       )
 
       array_x$region <- reg[k]
-
       fwrite(array_x, "emi/FC_INITIAL.csv", append = TRUE)
 
     }
   }
 }
-
-
 cat("Files at ",paste0(getwd(), "/emi/*\n"))
+
 
 # data.table ####
 dt <- fread("emi/FC_INITIAL.csv")
@@ -188,51 +181,26 @@ dt0 <- dt[pollutant == "FC",
 ]
 
 names(dt0)[ncol(dt0)] <- "estimation_t"
-
 dtf <- merge(dt0, fuel, by = c("fuel", "region"))
-
 setorderv(dtf, cols = c("fuel", "region"))
-
 dtf$estimation_consumption <- dtf$estimation_t / dtf$consumption_t
-
 print(dtf[, c("region", "fuel", "estimation_t", "consumption_t", "estimation_consumption")])
 
 # calibrate k ####
 k_D <- as.numeric(1/dtf[fuel == "D"]$estimation_consumption)
 k_G <- as.numeric(1/dtf[fuel == "G"]$estimation_consumption)
 # print(paste(k_D, k_G))
-
 dtf[, kfinal := as.numeric(1/estimation_consumption)]
 
-
 metadata <- readRDS("config/metadata.rds")
-
-categories <- c("pc", "lcv", "trucks", "bus", "mc") # in network/net.gpkg
-fleet <- readRDS("config/fleet.rds")
-pmonth <- readRDS("config/pmonth.rds")
-verbose <- TRUE
-theme <- "black" # dark clean ink
-survival   <- TRUE
-
+fleet    <- readRDS("config/fleet.rds")
+pmonth   <- readRDS("config/pmonth.rds")
 fuel <- dtf
 
-# 3 #####
-language <- "english" # spanish portuguese
-metadata <- readRDS("config/metadata.rds")
-categories <- c("pc", "lcv", "trucks", "bus", "mc") # in network/net.gpkg
-fleet <- readRDS("config/fleet.rds")
-verbose <- TRUE
-theme <- "black" # dark clean ink
-survival   <- TRUE
+# 3 #####         ??????
 source("scripts/trafficfuel.R")
-
-#number# re estimate fc ####
-verbose <- FALSE
-
 suppressWarnings(file.remove("emi/FC_FINAL.csv"))
-
 metadata_original <- metadata
-
 metadata <- metadata[metadata$fuel != "ELEC", ]
 
 # Hot Exhaust ####
@@ -242,40 +210,25 @@ reg <- unique(pmonth$region)
 
 # 4 Exhaust ####
 for(k in seq_along(reg)) {
-
   cat(reg[k],  "\n")
-
   for(i in seq_along(metadata$vehicles)) {
-
     # cat("\n", metadata$vehicles[i],
     #     rep("", max(nchar(metadata$vehicles) + 1) - nchar(metadata$vehicles[i])))
-
-
     x <- readRDS(paste0("veh/", metadata$vehicles[i], ".rds"))
-
     x[is.na(x)] <- 0
-
     x <- x[region == reg[k], ]
-
     x$region <- NULL
-
     setDF(x)
 
     # euro
-    cate <- suppressWarnings(
-      as.character(as.roman(gsub("Euro ", "",
-                                 euro[[metadata$vehicles[i]]]))))
+    cate <- suppressWarnings( as.character(as.roman(gsub("Euro ", "", euro[[metadata$vehicles[i]]]))))
     cate[is.na(cate)] <- "PRE"
 
-    dm <- pmonth[region == reg[k] &
-                   fuel == metadata$fuel[i]]$consumption_t
-
+    dm <- pmonth[region == reg[k] & fuel == metadata$fuel[i]]$consumption_t
+    
     for(j in seq_along(pol)){
-
       # cat(pol[j])
-
       if(metadata$v_eea_old[i] %in% c("PC", "LCV", "Motorcycle")) {
-
 
         ef <- ef_ldv_speed(v = metadata$v_eea_old[i],
                            t = metadata$t_eea_old[i],
@@ -297,11 +250,7 @@ for(k in seq_along(reg)) {
       }
 
       nrow(x) ==  nrow(ef)
-
       ef$speed <- NULL
-
-
-
       array_x <- emis_hot_td(
         veh = x,
         lkm = add_lkm(mileage[[metadata$vehicles[i]]][1:metadata$maxage[i]]),
@@ -317,9 +266,8 @@ for(k in seq_along(reg)) {
                       subtype_emi = "Exhaust",
                       baseyear = YEAR))
 
-      array_x$region <- reg[k]
-
-      fwrite(array_x, "emi/FC_FINAL.csv", append = TRUE)
+       array_x$region <- reg[k]
+       fwrite(array_x, "emi/FC_FINAL.csv", append = TRUE)
     }
   }
 }
@@ -328,9 +276,7 @@ for(k in seq_along(reg)) {
 # 5 Cold Start ####
 cat("\nCold Exhaust Fuel Consumption\n")
 
-metadata_cold <- metadata[metadata$fuel_eea_old %in% "G" &
-                            metadata$v_eea_old %in% c("PC", "LCV"), ]
-
+metadata_cold <- metadata[metadata$fuel_eea_old %in% "G" & metadata$v_eea_old %in% c("PC", "LCV"), ]
 
 for(k in seq_along(reg)) {
 
@@ -413,21 +359,10 @@ for(k in seq_along(reg)) {
 
       fwrite(array_x, "emi/FC_FINAL.csv", append = TRUE)
 
-
     }
   }
 }
 
-
-
-
-switch(language,
-       "portuguese" = message("\nArquivos em:"),
-       "english" = message("\nFiles in:"),
-       "spanish" = message("\nArchivos en:")
-)
-
-cat(paste0(getwd(), "/emi/*\n"))
 
 # data.table ####
 fuel$estimation_t_initial <- fuel$estimation_t
@@ -455,43 +390,3 @@ dtf$estimation_consumption <- dtf$estimation_t / dtf$consumption_t
 print(dtf[, c("region", "fuel", "estimation_t", "consumption_t", "estimation_consumption")])
 
 
-
-
-switch(language,
-       "portuguese" = message("\nArquivos em:"),
-       "english" = message("\nFiles in:"),
-       "spanish" = message("\nArchivos en:")
-)
-
-
-switch(language,
-       "portuguese" = message("\nArquivos em:"),
-       "english" = message("\nFiles in:"),
-       "spanish" = message("\nArchivos en:")
-)
-
-cat(paste0(getwd(), "/emi/*\n"))
-
-
-switch(language,
-       "portuguese" = message("Limpando..."),
-       "english" = message("Cleaning..."),
-       "spanish" = message("Limpiando...")
-)
-# suppressWarnings(rm(i, j, pol, dt, dt0, dtf, factor_emi, fuel))
-# suppressWarnings(rm(
-#   kPC, kPC_G, kPC_E, kPC_FG, kPC_FE,
-#   kLCV, kLCV_G, kLCV_E, kLCV_FG, kLCV_FE, kLCV_D,
-#   kTRUCKS, kTRUCKS_SL_D, kTRUCKS_L_D, kTRUCKS_M_D, kTRUCKS_SH_D, kTRUCKS_H_D,
-#   kBUS, kBUS_URBAN_D, kBUS_MICRO_D, kBUS_COACH_D,
-#   kMC, kMC_150_G, kMC_150_500_G, kMC_500_G,
-#   kMC_150_FG, kMC_150_500_FG, kMC_500_FG,
-#   kMC_150_FE, kMC_150_500_FE, kMC_500_FE,
-#   l_PC, l_LCV, l_TRUCKS, l_BUS, l_MC,
-#   i, arquivos, cores, df, f, ff,
-#   n_PC, n_LCV, n_TRUCKS, n_BUS, n_MC,
-#   na, nveh, p, tit, tit2, veiculos, x, kf,
-#   k_G, k_D, k_E,
-# ))
-ls()
-invisible(gc())
