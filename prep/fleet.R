@@ -1,4 +1,4 @@
-wdir="/home/usuario/github/eilubloomer/vein/prep"     #defino directorio de trabajo
+wdir="/home/ram/github/eilubloomer/vein/prep"     #defino directorio de trabajo
 setwd(wdir)                                           #voy a directorio de trabajo
 
 categorias=c("PC", "LCV", "TRUCKS", "BUS","MC")
