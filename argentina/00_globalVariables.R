@@ -48,3 +48,4 @@ categories= c("PC", "LCV", "TRUCKS", "BUS", "MC")    # categorias vehiculos: aut
 IM=FALSE
 
 
+#05-evaporative variables

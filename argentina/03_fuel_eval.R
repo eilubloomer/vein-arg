@@ -69,7 +69,7 @@ for(k in seq_along(reg)) {
 
       array_x <- emis_hot_td(
         veh = x,
-        lkm = add_lkm(mileage[[metadata$vehicles[i]]][1:metadata$maxage[i]]),
+        lkm = mileage[[metadata$vehicles[i]]][1:metadata$maxage[i]],
         ef = ef[1:metadata$maxage[i]],
         fortran = TRUE,
         pro_month = dm,
@@ -138,7 +138,7 @@ for(k in seq_along(reg)) {
 
       array_x <- emis_cold_td(
         veh = x,
-        lkm = add_lkm(mileage[[metadata_cold$vehicles[i]]]),
+        lkm = mileage[[metadata_cold$vehicles[i]]],
         ef = ef[, 1:ncol(x)],
         efcold = efcold[, 1:ncol(x)],
         fortran = TRUE,
@@ -206,7 +206,7 @@ metadata <- metadata[metadata$fuel != "ELEC", ]
 # Hot Exhaust ####
 cat("\nHot Running Fuel Consumption\n")
 
-reg <- unique(pmonth$region)
+#reg <- unique(pmonth$region)  # por que otra vez?!
 
 # 4 Exhaust ####
 for(k in seq_along(reg)) {
@@ -253,7 +253,7 @@ for(k in seq_along(reg)) {
       ef$speed <- NULL
       array_x <- emis_hot_td(
         veh = x,
-        lkm = add_lkm(mileage[[metadata$vehicles[i]]][1:metadata$maxage[i]]),
+        lkm = mileage[[metadata$vehicles[i]]][1:metadata$maxage[i]],
         ef = ef[1:metadata$maxage[i]],
         fortran = TRUE,
         pro_month = dm,
@@ -281,7 +281,6 @@ metadata_cold <- metadata[metadata$fuel_eea_old %in% "G" & metadata$v_eea_old %i
 for(k in seq_along(reg)) {
 
   cat(reg[k],  "\n")
-
 
   for(i in seq_along(metadata_cold$vehicles)) {
 

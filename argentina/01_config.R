@@ -39,7 +39,8 @@ metadata$fuel <- gsub("GLP", "G", metadata$fuel)
 
 # mileage     ######
 #transforma milage a un objeto "units" que tiene unidades de km.
-#mileage[, metadata$vehicles] <- add_lkm(mileage[, metadata$vehicles])  #ES NECESARIO? 
+mileage <- as.data.frame(mileage)
+mileage[, metadata$vehicles] <- add_lkm(mileage[, metadata$vehicles])
 
 # fleet       ######
 #Si fleet no tiene columna de "region" entonces la agrego 

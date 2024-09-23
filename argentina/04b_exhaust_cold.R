@@ -15,12 +15,12 @@ pol <- c("CO", "HC", "NMHC", "NOx", "CO2", "PM", "NO2", "NO", "CH4")
 
 suppressWarnings(file.remove("emi/cold_exhaust.csv"))
 
-setDT(pmonth)
+#setDT(pmonth)
+#setDT(pmonth)
+reg <- unique(fuel$region)
 
 # Escapamento ####
 cat("Estimating emissions Cold Start\n")
-
-setDT(pmonth)
 
 # fuel correction ####
 euros <- c("PRE", "I", "II", "III", "IV", "V", "VI", "VIc")
@@ -66,41 +66,26 @@ metadata$v_eea_old_fuel <- ifelse(metadata$v_eea_old %in% c("PC", "LCV", "Motorc
 metadata_cold <- metadata[metadata$fuel_eea_old %in% "G" &
                             metadata$v_eea_old %in% c("PC", "LCV"), ]
 
-reg <- unique(fuel$region)
 
 for(k in seq_along(reg)) {
 
   cat("\n\n", reg[k],  "\n")
-
   for (i in seq_along(metadata_cold$vehicles)) {
 
-    cat("\n", metadata_cold$vehicles[i],
-        rep("", max(nchar(metadata_cold$vehicles) + 1) - nchar(metadata_cold$vehicles[i]))
-    )
-
+    cat("\n", metadata_cold$vehicles[i], rep("", max(nchar(metadata_cold$vehicles) + 1) - nchar(metadata_cold$vehicles[i])) )
     x <- readRDS(paste0("veh/", metadata_cold$vehicles[i], ".rds"))
-
     x[is.na(x)] <- 0
-
     x <- x[region == reg[k], ]
-
     x$region <- NULL
-
     setDF(x)
-
     # euro
-    cate <- suppressWarnings(
-      as.character(as.roman(gsub("Euro ", "",
-                                 euro[[metadata_cold$vehicles[i]]]))))
+    cate <- suppressWarnings(as.character(as.roman(gsub("Euro ", "", euro[[metadata_cold$vehicles[i]]]))))
     cate[is.na(cate)] <- "PRE"
 
-    dm <- pmonth[region == reg[k] &
-                   fuel == metadata_cold$fuel[i]]$consumption_t
+    dm <- pmonth[region == reg[k] & fuel == metadata_cold$fuel[i]]$consumption_t
 
     for (j in seq_along(pol)) {
-
-      f_fcorr <- fcorr[veh == metadata_cold$v_eea_old_fuel[i] &
-                         pol == pol[j]]
+      f_fcorr <- fcorr[veh == metadata_cold$v_eea_old_fuel[i] & pol == pol[j]]
 
       # deterioration factor
       if(pol[j] %in% c("CO", "NO", "NO2", "HC", "NMHC")) {
@@ -121,11 +106,8 @@ for(k in seq_along(reg)) {
       cat(pol[j], " ")
 
       ltrip <- add_lkm(metadata_cold$km_cycle[i])
-
-      ta <- met[region == unique(region)[k]]$Temperature #!
-
+      ta <- met[region == reg[k]]$temp_C #!
       a <- cold_mileage(ltrip = ltrip, ta = celsius(ta))
-
       ef <- ef_ldv_speed(v = metadata_cold$v_eea_old[i],
                          t = metadata_cold$t_eea_old[i],
                          cc = metadata_cold$cc_eea_old[i],
@@ -138,9 +120,7 @@ for(k in seq_along(reg)) {
 
       if(metadata$fuel_eea_old[i] == "LPG" & pol[j] == "PM") ef <- ef*0
 
-
       kk <- 1
-
       poly <- ifelse(
         pol[j] %in% c("NO", "NO2"), "NOx",
         ifelse(
@@ -150,7 +130,6 @@ for(k in seq_along(reg)) {
             pol[j] %in% c("CO2"), "FC",
             pol[j]
           )))
-
 
       kk <- ifelse(
         pol[j] %in% c("NO", "NMHC"), 0.9,
@@ -163,7 +142,10 @@ for(k in seq_along(reg)) {
             1
           )))
 
-
+      if ( poly =="PM"){
+        cat("Por alguna razon PM tira error en ef_ldv_cold, hay que arreglarlo! \n")
+      
+      }else{
       efcold <- ef_ldv_cold(ta = matrix(ta, nrow = 1),
                             cc = ifelse(metadata_cold$cc_eea_old[i] == "<3.5",
                                         ">2000",
@@ -174,11 +156,9 @@ for(k in seq_along(reg)) {
                             speed = Speed(metadata_cold$speed[i]),
                             fcorr = if(nrow(f_fcorr) == 0) rep(1, 8) else f_fcorr$value,
                             k = kk)
-
+      }
       nrow(x) ==  nrow(ef)
-
       ef$speed <- NULL
-
       array_x <- emis_cold_td(
         veh = x,
         lkm = mileage[[metadata_cold$vehicles[i]]],

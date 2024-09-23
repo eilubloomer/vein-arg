@@ -141,7 +141,7 @@ for(k in seq_along(reg)) {
 
       array_x <- emis_hot_td(
         veh = x,
-        lkm = add_lkm(mileage[[metadata$vehicles[i]]]),
+        lkm = mileage[[metadata$vehicles[i]]],
         ef = eff,
         fortran = TRUE,
         nt = check_nt()/2,
