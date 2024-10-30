@@ -1,6 +1,6 @@
 source("00_globalVariables.R")
 #-----------------------------
-# Paved road Emis. ####
+# Paved Road Emissions 
 
 # 4) paved roads ####
 metadata <- readRDS("config/metadata.rds")
@@ -10,11 +10,11 @@ fleet    <- readRDS("config/fleet.rds"  )
 pmonth   <- readRDS("config/pmonth.rds" )
 met      <- readRDS("config/met.rds"    )       #ra , lo usa?
 fuel     <- readRDS("config/fuel.rds"   )
-# net      <- readRDS("network/net.rds")
 
 suppressWarnings(file.remove("emi/resuspension.csv"))
 reg    <- unique(fuel$region)
-ra = met[,c("Month","region","precip_mm")]     # esta bien esto?
+#ra = met[,c("Month","region","precip_mm")]     # esta bien esto?
+met$PN=met$precip_days/30                       # fraccion de dias con lluvia (aprox)
 
 maxage <- 40
 wear   <- c("tyre", "break", "road")
@@ -23,20 +23,16 @@ pol    <- c("PM2.5", "PM10")
 kpm10 = 4.6
 kpm25 = 1.1
 
-
 sL1 <- 2.4 # silt [g/m^2] se ADT < 500 (CENMA CHILE)          # tertiary
 sL2 <- 0.7 # silt [g/m^2] se 500 < ADT < 5000 (CENMA CHILE)   # secondary
 sL3 <- 0.6 # silt [g/m^2] se 5000 < ADT < 10000 (CENMA CHILE) # primary
 sL4 <- 0.3 # silt [g/m^2] se ADT > 10000 (CENMA CHILE)        # motorway trunk
 
-
 nr <- data.table(
   highway =  c("primary", "tertiary", "secondary", "trunk","motorway"),
   V1 = c(96950,45101,128350,24288,19643)
 )
-
 nr[, perc :=  V1/sum(V1)]
-
 nr[, sL := ifelse(
   highway == "motorway", "sL4",
   ifelse(
@@ -47,12 +43,10 @@ nr[, sL := ifelse(
 
 sl <- nr[, sum(perc), by = sL]
 
-# Wear ####
-
-# ef
+# Paved roads emission factor function:
 ef_paved <- function(k, sL, W) {
-  efx <- k * (sL/2)^0.65 * (W/3)^1.5
-  EmissionFactors(efx)
+   efx <- k * (sL/2)^0.65 * (W/3)^1.5
+   EmissionFactors(efx)
 }
 
 vx <- list.files("veh", full.names = T)
@@ -95,18 +89,20 @@ for(k in seq_along(reg)) {
     for (j in seq_along(pol)) {
 
       cat(" ", pol[j], " ")
-      ef <- ef_paved(k = if(pol[j] == "PM10" ) kpm10 else kpm25,
-                     sL = (2.4*sl[sL == "sL1"]$V1 +
-                             0.7*sl[sL == "sL2"]$V1 +
-                             0.6*sl[sL == "sL3"]$V1 +
-                             0.5*sl[sL == "sL4"]$V1),
-                     W = awf[region == reg[k]]$V1)
-      # print(ef)
+      
+      k0=if(pol[j] == "pm10" ) kpm10 else kpm25;
+      sL0=(2.4*sl[sL == "sL1"]$V1 + 0.7*sl[sL == "sL2"]$V1 + 0.6*sl[sL == "sL3"]$V1 + 0.5*sl[sL == "sL4"]$V1)
+      W0= awf[region == reg[k]]$V1
+      #compute emission factor:
+      ef <- ef_paved(k = k0, sL = sL0, W= W0) 
+      
+      #cat(c(k0,sL0,W0, ef))
+      
       for (mo in 1:12) {
         dm <- pmonth[region == reg[k] & fuel == metadata$fuel[i] & month(date) == mo]$pro
         lkm = mileage[[metadata$vehicles[i]]][1:maxage]
-        xe <- unlist(xv)*lkm*ef*(1 - ra[region == unique(region)[k] & Month == mo]$PN)
-
+        xe <- unlist(xv)*lkm*ef*(1 - met[region == reg[k] & Month == mo]$PN)
+	      #print(xe)
         array_x <- data.table(
           emissions = xe,
           rows = k,
@@ -123,7 +119,7 @@ for(k in seq_along(reg)) {
         )
 
         fwrite(array_x, "emi/resuspension.csv", append = TRUE)
-
+        cat(paste0(array_x))
         rm(array_x)
         gc()
       }
