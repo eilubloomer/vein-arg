@@ -8,6 +8,10 @@ require(readxl)     # read .xls files
 require(units)      # units conversions
 require(ggplot2)
 
+library(cptcity) # 7120 colour palettes
+library(stars)
+library(eixport)
+
 #Base directory
 dir="/home/ram/github/eilubloomer/vein-arg/argentina"
 setwd(dir)

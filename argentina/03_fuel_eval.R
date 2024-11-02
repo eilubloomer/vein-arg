@@ -379,13 +379,8 @@ dt0 <- dt[pollutant == "FC",
 ]
 
 names(dt0)[ncol(dt0)] <- "estimation_t"
-
 dtf <- merge(dt0, fuel, by = c("fuel", "region"))
-
 setorderv(dtf, cols = c("fuel", "region"))
-
 dtf$estimation_consumption <- dtf$estimation_t / dtf$consumption_t
-
 print(dtf[, c("region", "fuel", "estimation_t", "consumption_t", "estimation_consumption")])
-
 
