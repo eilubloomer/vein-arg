@@ -1,41 +1,21 @@
 #OS
 sep <- ifelse(Sys.info()[["sysname"]] == "Windows","00%3A", ":")
-
 #tempos
 ti <- wrf_get(file = wrfi,  name = "Times")
 # ti <- as.POSIXct(as.character(ti), tz)
-
-switch(language,
-       "portuguese" = cat("Primer tempo de WRF:", as.character(ti)[1], "\n"),
-       "english" = cat("First WRF time:", as.character(ti)[1], "\n"),
-       "spanish" = cat("Primer tiempo de WRF:", as.character(ti)[1], "\n"))
-
-
+cat("First WRF time:", as.character(ti)[1], "\n")
 
 # ltemissions, first monday 00:00 before ti
-timepos <- as.POSIXct(as.character(ti), 
-                      format = "%Y-%m-%d_%H:%M:%S", 
-                      tz)
+timepos <- as.POSIXct(as.character(ti), format = "%Y-%m-%d_%H:%M:%S", tz)
 oneweek <- timepos - 3600*24*7
 
-df_time <- data.frame(
-  times = seq.POSIXt(from = oneweek, to = timepos, by = "hour")
-)
+df_time <- data.frame( times = seq.POSIXt(from = oneweek, to = timepos, by = "hour"))
 
 df_time$wday <- strftime(df_time$times, "%u")
 df_time$hour <- hour(df_time$times)
-lt_emissions <- df_time[df_time$wday == 1 & 
-                          df_time$hour == 0, ]$times[1]
+lt_emissions <- df_time[df_time$wday == 1 & df_time$hour == 0, ]$times[1]
 
-switch(
-  language,
-  "portuguese" = cat("Segunda-feira 00:00 anterior do primeiro tempo WRF:", 
-                     as.character(lt_emissions), "\n"),
-  "english" = cat("Monday 00:00, previous of first WRF time:", 
-                  as.character(lt_emissions), "\n"),
-  "spanish" = cat("Lunes 00:00 antes del primer tiempo WRF:", 
-                  as.character(lt_emissions), "\n"))
-
+cat("Monday 00:00, previous of first WRF time:",  as.character(lt_emissions), "\n")
 
 wrfc <- paste0("wrfchemi_d0", domain, "_", as.character(ti))
 
@@ -44,11 +24,7 @@ if(Sys.info()[["sysname"]] == "Windows") wrfc <- gsub("00:", sep, wrfc)
 ti <- as.POSIXct(ti)
 
 # Grades
-lf <- paste0("post/spec_grid/",
-             dom,
-             "emis_grid_0",
-             month,
-             "_mol.rds")
+lf <- paste0("post/spec_grid/", dom, "emis_grid_0", month, "_mol.rds")
 
 x <- readRDS(lf)
 names(x)

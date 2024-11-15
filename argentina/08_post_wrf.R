@@ -6,114 +6,72 @@ source("00_globalVariables.R")
 #*crs <- 3857
 #*osm_name <- "highway"
 #*source("scripts/post2.R", encoding = "UTF-8")
+
 #post2.R----------------------------------------------------------------
-UF_select          <- basename(getwd())
+UF_select <- basename(getwd())
 # g <- readRDS(paste0("../../../rds/g_", UF_select, ".rds"))
 
 # df
-df <- rbind(
-  fread("emi/exhaust.csv"),
-  fread("emi/wear.csv"),
-  fread("emi/evaporatives.csv")
-)
+df <- rbind(  fread("emi/exhaust.csv"),  fread("emi/wear.csv"),  fread("emi/evaporatives.csv"))
 df$pollutant <- ifelse(df$pollutant == "PM2.5", "PM", df$pollutant)
 df$emissions <- units::set_units(df$emissions, "g")
 df$t <- units::set_units(df$emissions, "t")
 
 # datatable ####
 suppressWarnings(file.remove("post/emi_table.rds"))
-switch(language,
-       "portuguese" = cat("Salvando emissões\n"),
-       "english" = cat("Saving emissions\n"),
-       "spanish" = cat("Guardando emisiones\n")
-)
-
+cat("Saving emissions\n")
 saveRDS(df, "post/emi_table.rds")
-
-fwrite(df, "post/emi_table.csv")
+fwrite (df, "post/emi_table.csv")
 
 dt0 <- df[, round(sum(t), 2), by = .(pollutant)]
-print(dt0)
+#print(dt0)
 
-
-switch (language,
-        "portuguese" = message("\n\nArquivos em:"),
-        "english" = message("\n\nFiles in:"),
-        "spanish" = message("\n\nArchivos en:"))
-
-message("post/emi_table.rds\n",
-        "post/emi_table.csv\n")
-
-
-#rm(list = ls())
-#gc()
 #post2.R----------------------------------------------------------------
 
+#--------
 # 4) Post-estimation roads ####
-roads_path <- "../../brazil_roads/" 
+roads_path <- "./sp/roads/" 
 osm_name <- "highway"
 source("scripts/post_roads.R", encoding = "UTF-8")
-rm(list = ls())
-gc()
 
+#--------
 # 5) Post-estimation grids ####
-# g <- read_stars("../../cams/CAMS-GLOB-ANT_v4.2_carbon-monoxide_2017.nc", 
-# sub = "tro")
+
+dom   <- "d02_"   #select domain
+month <- 7        #select month
+mech  <- "CBMZ"   #select chemical mechanism
 
 g <- eixport::wrf_grid("./wrf/wrfinput_d01")
-# Number of lat points 179
-# Number of lon points 179
 saveRDS(g, "./wrf/gd01.rds")
 
-# g <- eixport::wrf_grid("../../wrf/wrfinput_d02")
-# using grid info from: ../../wrf/wrfinput_d02 
-# Number of lat points 198
-# Number of lon points 219
-# saveRDS(g, "../../wrf/gd02.rds")
-#g <- readRDS("../../wrf/gd02.rds")
-
-g <- st_as_sf(g)
-st_crs(g) <- 4326
-crs <- 3857
+g <- st_as_sf(g)                           # grid to spatial features
+st_crs(g) <- 4326                          # set grid crs
+crs <- 3857                                # 
 pols <- c("CO","HC","NOx", "CO2", "PM", "NO2", "NO", "SO2", "CH4", "ETOH", "NH3", "N2O", "PM10", "NMHC_G_EXHAUST", "NMHC_E_EXHAUST", "NMHC_D_EXHAUST", "NMHC_G_EVAPORATIVES_HISTORIC", "NMHC_E_EVAPORATIVES_HISTORIC")
-dom <- "d02_"
-month <- 7
 
-source("scripts/post_grid.R", encoding = "UTF-8")
-rm(list = ls())
-gc()
+#source("scripts/post_grid.R", encoding = "UTF-8")
+cat("Gridding lengths\n")
 
+ f <- list.files(path = "post/streets/",  pattern = "emis_street", full.names = T)
+fa <- list.files(path = "post/streets/",  pattern = "emis_street",  full.names = F)
+x <- readRDS(f[month])[pols]
+x <- st_crop(x, st_as_sfc(st_bbox(g)))
+gx <- emis_grid(spobj = x, g = g, sr = crs)
 
-# plots
-language <- "spanish" # english spanish portuguese
-metadata <- readRDS("config/metadata.rds")
-veh <- readRDS("config/fleet_age.rds")
-pol <- c("CO", "HC", "NOx", "CO2", "PM", "NMHC")
-pal <- "mpl_viridis" # procura mais paletas com ?cptcity::find_cpt
+print(paste0("post/grids/", dom, "emis_grid_", sprintf("%02d", month), ".rds"))
+saveRDS(gx, paste0("post/grids/", dom,   "emis_grid_", sprintf("%02d", month),".rds"))
 
-gpols <- c("CO",
-           "HC",
-           "NOx",
-           "CO2",
-           "PM",
-           "NO2",
-           "NO",
-           "ETOH",
-           "SO2",
-           "CH4",
-           "NH3",
-           "N2O",
-           "PM10",
-           "NMHC_G",
-           "NMHC_E",
-           "NMHC_D")
-
-source("scripts/plots.R", encoding = "UTF-8")
-rm(list = ls())
-gc()
-
+##--------
+## plots
+#metadata <- readRDS("config/metadata.rds")
+#veh      <- readRDS("config/fleet_age.rds")
+#pol      <- c("CO", "HC", "NOx", "CO2", "PM", "NMHC")
+#pal      <- "mpl_viridis" # procura mais paletas com ?cptcity::find_cpt
+#gpols <- c("CO", "HC", "NOx", "CO2", "PM", "NO2", "NO", "ETOH", "SO2", "CH4", "NH3", "N2O", "PM10", "NMHC_G", "NMHC_E", "NMHC_D")
+#
+#source("scripts/plots.R", encoding = "UTF-8")
+#----------------------------------
 # # MECH spatial ####
-language <- "portuguese" # english spanish
 # g <- read_stars("../../cams/CAMS-GLOB-ANT_v4.2_carbon-monoxide_2017.nc", 
 #                 sub = "tro")
 # g <- eixport::wrf_grid("../../wrf/wrfinput_d01")
@@ -121,71 +79,38 @@ g <- readRDS("../../wrf/gd02.rds")
 month <- 7
 g <- st_as_sf(g)
 st_crs(g) <- 4326
-mech <- "CBMZ"
-dom <- "d02_"
 
 source("scripts/mech3_spatial_v2.R",  encoding = "UTF-8",  echo = F)
-rm(list = ls())
-gc()
 
-
+#------------------------------
 # # MECH spatial GAS PM  ####
 # g <- read_stars("../../cams/CAMS-GLOB-ANT_v4.2_carbon-monoxide_2017.nc", 
 #                 sub = "tro")
 # g <- eixport::wrf_grid("../../wrf/wrfinput_d01")
 d <- 1
-language <- "portuguese" # english spanish
 for(kk in 1:2){
-  
-  g <- readRDS(paste0("../../wrf/gd0", kk, ".rds"))
-  month <- 7
-  g <- st_as_sf(g)
-  st_crs(g) <- 4326
-  mech <- "CBMZ"
-  dom <- paste0("d0", kk, "_")
-  
-  gas <- c("CO",
-           "CO2",
-           "NO2",
-           "NO",
-           "SO2",
-           "CH4",
-           "NH3",
-           "N2O")
-  
-  mw <- c(28.01,
-          44.01,
-          46.0055,
-          30.01,
-          64.066,
-          16.04,
-          17.031,
-          44.013)
-  
-  pms <- c("PM",
-           "PM10")
-  
-  aer <- "pm2023"
-  
-  source("scripts/mech3_spatial_GAS_PM.R", 
-         encoding = "UTF-8", 
-         echo = F)
+ g <- readRDS(paste0("../../wrf/gd0", kk, ".rds"))
+ month <- 7
+ g <- st_as_sf(g)
+ st_crs(g) <- 4326
+ mech <- "CBMZ"
+ dom <- paste0("d0", kk, "_")
+ gas <- c("CO", "CO2", "NO2", "NO", "SO2", "CH4", "NH3", "N2O") 
+ mw <- c(28.01, 44.01, 46.0055, 30.01, 64.066, 16.04, 17.031, 44.013) 
+ pms <- c("PM", "PM10")
+ aer <- "pm2023"
+ source("scripts/mech3_spatial_GAS_PM.R", encoding = "UTF-8", echo = F)
 }
-rm(list = ls())
-gc()
-
 
 # WRF CHEM
-co <- 2
-o3 <- 1
+co  <- 2
+o3  <- 1
 no2 <- 0.9
-no <- 1.5
-pm <- 0.1
-
+no  <- 1.5
+pm  <- 0.1
 
 # type only grids
 k <- 1
-language <- "portuguese" # english spanish
 for(kk in 1:2){
   mech <- "CBMZ"
   dir.create("wrf")
